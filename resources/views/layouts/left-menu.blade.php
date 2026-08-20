@@ -124,6 +124,13 @@
             z-index: 1030;
         }
 
+        .quixnav.qx-collapsed.qx-expanded ~ .content-body {
+            margin-left: 260px !important;
+       }
+       .content-body {
+            transition: margin-left .2s ease;
+        }
+
         .quixnav.qx-collapsed.qx-expanded {
             width: 260px !important;
             position: fixed !important;
