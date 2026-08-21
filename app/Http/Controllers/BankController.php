@@ -69,6 +69,7 @@ class BankController extends Controller
         
         // dd($request->all());
         if(isset($request['save'])){
+            
             $bankservices->sub_service_id = $request->form_sub_service_id;
             
 
@@ -156,7 +157,7 @@ class BankController extends Controller
           }
           if(isset($request['save'])){
               $request->validate([
-                
+                'processing_fee' => 'required|string|max:50',
                 'bank_name' => [
                     'required',
                     Rule::unique('banks', 'bank_name')->ignore($id, 'bank_id'),
@@ -167,6 +168,7 @@ class BankController extends Controller
 'age_limit' => 'required|string|max:50',
 
             ]);
+        $bank->processing_fee = $request->processing_fee;
         $bank_name = $request->bank_name;
         $bank_desc = $request->desc;
         // $sub_service_id = $request->sub_service_id;
@@ -179,6 +181,7 @@ class BankController extends Controller
 
         $bank->effective_interest_range = $request->effective_interest_range;
 $bank->age_limit = $request->age_limit;
+$bank->processing_fee = $request->processing_fee;
 
         // $bank->bank_url = $bank_url;
         // $bank->sub_service_id = $sub_service_id;
@@ -255,7 +258,7 @@ if ($request->hasFile('logo')) {
             'sub_service_image' => 'required|image|mimes:jpg,png|max:1024',
             'effective_interest_range' => 'required|string|max:50',
             'age_limit' => 'required|string|max:50',
-
+            'processing_fee' => 'required|string|max:50',
         ]);
         $bank_url = NULL;
         $bank_name = $request->bank_name;

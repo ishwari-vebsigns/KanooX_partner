@@ -18,6 +18,7 @@ class Bank extends Model
         'is_active',
         'is_api',
         'bank_url',
+        'processing_fee'
     ];
 
     public function bank_sub_service()
