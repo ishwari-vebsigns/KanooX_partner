@@ -97,6 +97,7 @@
                                             <th>Loan Type</th>
                                             <th>Loan Details</th>
                                             <th>Documents</th>
+                                            <th>Status</th>
                                             <th>User ID</th>
                                             <th>Created At</th>
                                         </tr>
@@ -209,6 +210,19 @@
                                                     @else
                                                         <span class="text-muted">—</span>
                                                     @endif
+                                                </td>
+                                                <td>
+                                                    <form action="{{ route('loan.leads.updateStatus', $lead->id) }}"
+                                                        method="POST" class="d-flex align-items-center gap-1">
+                                                        @csrf
+                                                        <select name="status" class="form-control form-control-sm status-select"
+                                                            style="width:140px; display:inline-block;"
+                                                            onchange="this.form.submit()">
+                                                            <option value="pending" {{ $lead->status == 'pending' ? 'selected' : '' }}>Pending</option>
+                                                            <option value="under_review" {{ $lead->status == 'under_review' ? 'selected' : '' }}>Under Review</option>
+                                                            <option value="completed" {{ $lead->status == 'completed' ? 'selected' : '' }}>Completed</option>
+                                                        </select>
+                                                    </form>
                                                 </td>
                                                 <td>{{ $lead->user_id ?? '-' }}</td>
 

@@ -537,6 +537,7 @@ Route::get('/admin/insurance-leads/export',[App\Http\Controllers\InsuranceLeadCo
 //loan leads report
 Route::get('/admin/loan-leads', [App\Http\Controllers\LoanLeadController::class, 'index'])->middleware('auth')->name('admin.loan.leads');
 Route::get('/admin/loan-leads/export',[App\Http\Controllers\LoanLeadController::class, 'export'])->name('loan.leads.export');
+Route::post('/admin/loan-leads/{id}/status', [App\Http\Controllers\LoanLeadController::class, 'updateStatus'])->name('loan.leads.updateStatus');
 
 
 //Credit card lead report

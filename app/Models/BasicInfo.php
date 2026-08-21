@@ -14,6 +14,7 @@ class BasicInfo extends Model
         'user_id',
         'loan_service_id',
         'dynamic_fields',
+        'status',
     ];
 
     protected $casts = [
