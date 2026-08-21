@@ -135,6 +135,17 @@
            required>
   </div>
 </div>
+<div class="form-group row">
+  <label class="col-lg-4 col-form-label">Processing Fee *</label>
+  <div class="col-lg-6">
+    <input type="text"
+           class="form-control"
+           name="processing_fee"
+           value="{{ old('processing_fee') }}"
+           placeholder="2% of loan amount"
+           required>
+  </div>
+</div>
 
                                                 {{-- <div class="form-group row">
                                                     <label class="col-lg-4 col-form-label" for="val-skill">Select Service

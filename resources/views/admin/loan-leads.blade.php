@@ -115,7 +115,7 @@
                             <td style="max-width:260px">
                                 @if(!empty($lead->dynamic_fields) && is_array($lead->dynamic_fields))
                                     <ul class="mb-0 ps-3">
-                                        @foreach($lead->dynamic_fields as $key => $value)
+                                        @foreach(collect($lead->dynamic_fields)->except(['loan_amount_min', 'income_min']) as $key => $value)
                                             <li>
                                                 <strong>{{ ucwords(str_replace('_',' ', $key)) }}:</strong>
                                                 {{ $value ?? '-' }}
