@@ -1,5 +1,4 @@
-@extends('layouts.admin-app')
-@section('content')
+<?php $__env->startSection('content'); ?>
 
 <script src="https://code.jquery.com/jquery-3.3.1.js"></script>
 
@@ -274,26 +273,27 @@
             <div class="kx-title-wrap">
                 <div class="kx-title-icon"><i class="fa fa-cubes"></i></div>
                 <div>
-                    <h4 class="kx-page-title">Hi, welcome {{Auth::user()->name}}!</h4>
+                    <h4 class="kx-page-title">Hi, welcome <?php echo e(Auth::user()->name); ?>!</h4>
                     <p class="kx-page-subtitle">
                         Add a new service to the platform.
-                        @if(Auth::user()->role_id==2)
-                            &nbsp;&middot;&nbsp;Agent ID: {{Auth::user()->new_id}}
-                        @endif
+                        <?php if(Auth::user()->role_id==2): ?>
+                            &nbsp;&middot;&nbsp;Agent ID: <?php echo e(Auth::user()->new_id); ?>
+
+                        <?php endif; ?>
                     </p>
                 </div>
             </div>
             <nav class="kx-breadcrumb">
-                <a href="{{$base_url}}/admin/service/all">Services</a> / <span class="kx-crumb-current">Add Service</span>
+                <a href="<?php echo e($base_url); ?>/admin/service/all">Services</a> / <span class="kx-crumb-current">Add Service</span>
             </nav>
         </div>
 
-        @if(Auth::user()->kyc_status==0)
+        <?php if(Auth::user()->kyc_status==0): ?>
         <div class="kx-kyc-alert">
             <i class="fa fa-exclamation-circle"></i>
             <span>Please complete your KYC to proceed. To complete KYC <a href="/#/Dashboard">click here</a>.</span>
         </div>
-        @endif
+        <?php endif; ?>
 
         <div class="row">
             <div class="col-lg-12">
@@ -308,25 +308,25 @@
 
                     <div class="kx-form-body">
                         <form action="add" method="post">
-                            @csrf
+                            <?php echo csrf_field(); ?>
 
                             <div class="kx-field">
                                 <label class="kx-field-label" for="service_name">Service Name <span class="text-danger">*</span></label>
-                                <div class="kx-field-control {{ $errors->has('service_name') ? ' has-error' : '' }}">
+                                <div class="kx-field-control <?php echo e($errors->has('service_name') ? ' has-error' : ''); ?>">
                                     <input type="text" class="kx-input" id="service_name" name="service_name" placeholder="Service Name" required>
-                                    @if ($errors->has('service_name'))
-                                    <span class="kx-help-block">{{ $errors->first('service_name') }}</span>
-                                    @endif
+                                    <?php if($errors->has('service_name')): ?>
+                                    <span class="kx-help-block"><?php echo e($errors->first('service_name')); ?></span>
+                                    <?php endif; ?>
                                 </div>
                             </div>
 
                             <div class="kx-field">
                                 <label class="kx-field-label" for="service_url">Service URL <span class="text-danger">*</span></label>
-                                <div class="kx-field-control {{ $errors->has('service_url') ? ' has-error' : '' }}">
+                                <div class="kx-field-control <?php echo e($errors->has('service_url') ? ' has-error' : ''); ?>">
                                     <input type="text" class="kx-input" id="service_url" name="service_url" placeholder="Service URL" required>
-                                    @if ($errors->has('service_url'))
-                                    <span class="kx-help-block">{{ $errors->first('service_url') }}</span>
-                                    @endif
+                                    <?php if($errors->has('service_url')): ?>
+                                    <span class="kx-help-block"><?php echo e($errors->first('service_url')); ?></span>
+                                    <?php endif; ?>
                                 </div>
                             </div>
 
@@ -354,11 +354,12 @@
   $( document ).ready(function() {
      <?php if(session()->has('success')){ ?>
 
-         toastr.success("{{Session::get('success')}}");
+         toastr.success("<?php echo e(Session::get('success')); ?>");
         <?php session()->forget('success'); ?>
         <?php }?>
 });
 </script>
 <script src="https://cdn.datatables.net/1.10.19/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.10.19/js/dataTables.bootstrap.min.js"></script>
-@endsection
+<?php $__env->stopSection(); ?>
+<?php echo $__env->make('layouts.admin-app', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?><?php /**PATH F:\xampp\htdocs\kanoo_partner\resources\views/services/add.blade.php ENDPATH**/ ?>
