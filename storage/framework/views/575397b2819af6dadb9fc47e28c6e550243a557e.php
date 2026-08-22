@@ -134,6 +134,13 @@
             overflow: visible;
         }
 
+        .quixnav.qx-collapsed.qx-expanded ~ .content-body {
+            margin-left: 260px !important;
+       }
+       .content-body {
+            transition: margin-left .2s ease;
+        }
+
         /* Hide nav text by default in collapsed state... */
         .quixnav.qx-collapsed .nav-text {
             opacity: 0;
