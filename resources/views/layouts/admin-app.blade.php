@@ -70,6 +70,9 @@
         }
         main footer textarea {
         width: 100% !important;
+        text-align: center !important;
+
+
         }
         #sendbutton {
         margin-top: -106px !important;

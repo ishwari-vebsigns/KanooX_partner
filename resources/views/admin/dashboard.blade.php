@@ -1,5 +1,71 @@
 @extends('layouts.admin-app')
 @section('content')
+    <style>
+        /* ===== New colorful stat card design ===== */
+        .stat-widget-one.card-body {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 22px 20px;
+        }
+
+        .card {
+            border: none;
+            border-radius: 36px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.10);
+        }
+
+        .stat-widget-one .stat-icon {
+            width: 56px !important;
+            height: 56px !important;
+            min-width: 56px !important;
+            border-radius: 14px !important;
+            border: none !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            font-size: 22px !important;
+            box-shadow: none !important;
+        }
+
+        .stat-widget-one .stat-icon i {
+            font-size: 22px;
+        }
+
+        .stat-content {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-text {
+            font-size: 13px;
+            color: #8a8a99;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .stat-digit {
+            font-size: 26px;
+            font-weight: 700;
+            color: #1e1e2d;
+            line-height: 1;
+        }
+
+        /* Color variants per card */
+        .stat-widget-one .icon-purple { background: #efe6fd !important; color: #7b3fe4 !important; }
+        .stat-widget-one .icon-blue   { background: #e3f0ff !important; color: #2f7ff0 !important; }
+        .stat-widget-one .icon-orange { background: #ffe9d9 !important; color: #f28c1f !important; }
+        .stat-widget-one .icon-green  { background: #e1f8ec !important; color: #16b364 !important; }
+        .stat-widget-one .icon-teal   { background: #dcf6f4 !important; color: #0fb8ab !important; }
+        .stat-widget-one .icon-pink   { background: #ffe3ee !important; color: #ef4d8b !important; }
+    </style>
+
     <div class="content-body">
         <div class="container-fluid">
             <div class="row page-titles mx-0">
@@ -31,7 +97,7 @@
                         <div class="stat-widget-one card-body">
 
                             @if(Auth::user()->role_id == 1)
-                            <div class="stat-icon d-inline-block">
+                            <div class="stat-icon icon-purple d-inline-block">
                                 <i class="fa-solid fa-users-viewfinder"></i>
                             </div>
                             <div class="stat-content d-inline-block">
@@ -40,7 +106,7 @@
                             </div>
                             @endif
                             @if(Auth::user()->role_id == 2 || Auth::user()->role_id==3)
-                            <div class="stat-icon d-inline-block">
+                            <div class="stat-icon icon-blue d-inline-block">
                                 <i class="fa-solid fa-indian-rupee-sign"></i>
                             </div>
                             <div class="stat-content d-inline-block">
@@ -77,7 +143,7 @@
                 <div class="col-lg-4 col-sm-6">
                     <div class="card">
                         <div class="stat-widget-one card-body">
-                            <div class="stat-icon d-inline-block">
+                            <div class="stat-icon icon-orange d-inline-block">
                                 <i class="fa-solid fa-file-invoice-dollar"></i>
                             </div>
                             <div class="stat-content d-inline-block">
@@ -90,7 +156,7 @@
                 <div class="col-lg-4 col-sm-6">
                     <div class="card">
                         <div class="stat-widget-one card-body">
-                            <div class="stat-icon d-inline-block">
+                            <div class="stat-icon icon-pink d-inline-block">
                                 <i class="fa-solid fa-credit-card"></i>
                             </div>
                             <div class="stat-content d-inline-block">
@@ -103,7 +169,7 @@
                 <div class="col-lg-4 col-sm-6">
                     <div class="card">
                         <div class="stat-widget-one card-body">
-                            <div class="stat-icon d-inline-block">
+                            <div class="stat-icon icon-green d-inline-block">
                                 <i class="fa-solid fa-envelope"></i>
                             </div>
                             <div class="stat-content d-inline-block">
@@ -116,7 +182,7 @@
                 <div class="col-lg-4 col-sm-6">
                     <div class="card">
                         <div class="stat-widget-one card-body">
-                            <div class="stat-icon d-inline-block">
+                            <div class="stat-icon icon-teal d-inline-block">
                                 <i class="fa-solid fa-chart-line"></i>
                             </div>
                             <div class="stat-content d-inline-block">
