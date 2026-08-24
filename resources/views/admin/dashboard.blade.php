@@ -754,9 +754,13 @@ new Chart(document.getElementById('leadsDonut'), {
         cutoutPercentage: 72,
         responsive: true,
         maintainAspectRatio: false,
+        layout: {
+            padding: 22
+        },
         legend: { display: false },
         tooltips: {
             backgroundColor: '#25213A',
+            xAlign: 'center',
             titleFontSize: 12,
             bodyFontSize: 12,
             cornerRadius: 8,
