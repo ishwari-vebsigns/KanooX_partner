@@ -124,10 +124,15 @@
             z-index: 1030;
         }
 
+        .quixnav.qx-collapsed ~ .content-body {
+            margin-left: 78px !important;
+        }
+
         .quixnav.qx-collapsed.qx-expanded ~ .content-body {
             margin-left: 260px !important;
-       }
-       .content-body {
+        }
+
+        .content-body {
             transition: margin-left .2s ease;
         }
 
@@ -139,13 +144,6 @@
             height: 100vh;
             box-shadow: 4px 0 18px rgba(0, 0, 0, 0.12);
             overflow: visible;
-        }
-
-        .quixnav.qx-collapsed.qx-expanded ~ .content-body {
-            margin-left: 260px !important;
-       }
-       .content-body {
-            transition: margin-left .2s ease;
         }
 
         /* Hide nav text by default in collapsed state... */

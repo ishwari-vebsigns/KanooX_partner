@@ -264,6 +264,7 @@ Route::group(['prefix' => 'admin',  'middleware' => 'auth'], function(){
 
 	
 	Route::get('dashboard', ['middleware' =>'auth', 'uses' =>'AdminController@getDashboard']);
+	Route::get('loan-status-counts', ['middleware' =>'auth', 'uses' =>'AdminController@getLoanStatusCounts'])->name('admin.loan-status-counts');  //mangesh 
 	Route::get('training', ['middleware' =>'auth', 'uses' =>'AdminController@gettraining']);
 	Route::get('all-customers', ['middleware' =>'auth', 'uses' =>'AdminController@getallcustomers']);
 	Route::get('all-customers/alldata', ['middleware' =>'auth', 'uses' =>'AdminController@getallcustomersalldata']);
