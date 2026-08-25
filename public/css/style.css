@@ -12052,12 +12052,25 @@ a.active {
 
 /* Editable */
 #preloader {
-  position: fixed;
-  width: 100%;
-  height: 100%;
-  left: 0;
-  top: 0;
-  background-color: #fff;
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #ffffff;
+    z-index: 999999;
+}
+
+.loader-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.loader-content img {
+    width: 500px;
+    height: auto;
+    display: block;
 }
 
 .sk-three-bounce {

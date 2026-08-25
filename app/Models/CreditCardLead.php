@@ -14,8 +14,9 @@ class CreditCardLead extends Model
         'dob',
         'pan',
         'profession_type',
-    'annual_income',
+        'annual_income',
         'user_id',
         'sub_service_id',
+        'status',
     ];
 }

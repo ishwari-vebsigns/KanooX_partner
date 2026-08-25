@@ -276,13 +276,13 @@
                                     </a>
                                 </li>
                             @endif
-                            @if($my_permissions->contains('BLOGS'))
+                            <!-- @if($my_permissions->contains('BLOGS'))
                                 <li class="{{ request()->routeIs('admin.blogs.*') ? 'active' : '' }}">
                                     <a href="{{ route('admin.blogs.index') }}" aria-expanded="false">
                                         <span class="nav-text">Blogs</span>
                                     </a>
                                 </li>
-                            @endif
+                            @endif -->
                         </ul>
                     </li>
                 @endif
@@ -292,10 +292,16 @@
                         <a class="has-arrow" href="javascript:void()" aria-expanded="false"><i
                                 class="fa-solid fa-table"></i><span class="nav-text">Reports</span></a>
                         <ul aria-expanded="false">
-                            @if($my_permissions->contains('BANK_CLICK'))
+                            <!-- @if($my_permissions->contains('BANK_CLICK'))
                                 <li class="{{ request()->routeIs('admin.user.journey.report') ? 'active' : '' }}">
                                     <a href="{{ route('admin.user.journey.report') }}"><span class="nav-text">User Journey
                                             Report</span></a>
+                                </li>
+                            @endif -->
+                           
+                            @if($my_permissions->contains('BANK_CLICK'))
+                                <li class="{{ request()->routeIs('admin.user.journey.report') ? 'active' : '' }}">
+                                    <a href="{{ route('admin.user.journey.report') }}"><span class="nav-text">User Journey Report</span></a>
                                 </li>
                             @endif
                             @if($my_permissions->contains('CIBIL_REPORT_VIEW'))

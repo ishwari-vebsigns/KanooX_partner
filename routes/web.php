@@ -544,7 +544,7 @@ Route::post('/admin/loan-leads/{id}/status', [App\Http\Controllers\LoanLeadContr
 //Credit card lead report
 Route::get('/admin/credit-card-leads', [App\Http\Controllers\CreditCardLeadController::class, 'index'])->middleware('auth')->name('admin.credit-cards.leads');
 Route::get('/admin/credit-card-leads/export',[App\Http\Controllers\CreditCardLeadController::class, 'export'])->name('credit.card.leads.export');
-
+Route::patch('/admin/credit-card-leads/{lead}/status', [App\Http\Controllers\CreditCardLeadController::class, 'updateStatus'])->name('credit-card-leads.status.update');
 Route::get('/admin/cibil-reports', [App\Http\Controllers\CibilController::class, 'index'])->name('admin.cibil.reports');
 Route::get('/admin/cibil-reports/{id}', [App\Http\Controllers\CibilController::class, 'show'])->name('admin.cibil.details');
 //Loan Application
@@ -567,8 +567,12 @@ Route::prefix('admin')->middleware(['auth'])->group(function () {
 Route::post('admin/loan-services/field', [App\Http\Controllers\LoanServiceController::class, 'storeField'])->name('admin.loan.services.field.store');
 Route::patch('/admin/loan-services/fields/{id}/toggle',[App\Http\Controllers\LoanServiceController::class, 'toggleField'])->name('admin.loan.services.field.toggle');
 Route::patch('/admin/loan-services/{id}/toggle',[App\Http\Controllers\LoanServiceController::class, 'toggleService'])->name('admin.loan.services.toggle');
+Route::put('loan-services/{id}', [App\Http\Controllers\LoanServiceController::class, 'update'])->name('admin.loan.services.update');
+Route::delete('loan-services/{id}', [App\Http\Controllers\LoanServiceController::class, 'destroy'])->name('admin.loan.services.destroy');
+Route::put('loan-services/fields/{id}', [App\Http\Controllers\LoanServiceController::class, 'updateField'])->name('admin.loan.services.field.update');
+Route::delete('loan-services/fields/{id}', [App\Http\Controllers\LoanServiceController::class, 'destroyField'])->name('admin.loan.services.field.destroy');
 Route::get('/admin/bank-clicks', [App\Http\Controllers\BankClickController::class, 'index'])->name('admin.bank.clicks');
-
+Route::get('loan-status-counts', ['middleware' =>'auth', 'uses' =>'AdminController@getLoanStatusCounts'])->name('admin.loan-status-counts');  //mangesh
 Route::get('/admin/send-notification',[App\Http\Controllers\NotificationWebController::class,'index']);
 Route::post('/admin/send-notification',[App\Http\Controllers\NotificationWebController::class,'send']);
 //Blogs
