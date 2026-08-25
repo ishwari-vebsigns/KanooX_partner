@@ -849,10 +849,9 @@ if (!$filename) {
         return redirect('admin/report/agent-report');
     }
     
-    
     public function userJourneyReport()
-    {
-          $query = Loansignin::with([
+{
+    $query = Loansignin::with([
         'menuClicks',
         'basicInfos',
         'bankClicks',
@@ -866,31 +865,22 @@ if (!$filename) {
     */
 
     if (request()->filled('from_date')) {
-
-        $query->whereDate(
-            'created_at',
-            '>=',
-            request('from_date')
-        );
+        $query->whereDate('created_at', '>=', request('from_date'));
     }
 
     if (request()->filled('to_date')) {
-
-        $query->whereDate(
-            'created_at',
-            '<=',
-            request('to_date')
-        );
+        $query->whereDate('created_at', '<=', request('to_date'));
     }
+
     if (request()->filled('search')) {
         $search = request('search');
         $query->where(function ($q) use ($search) {
             $q->where('customer_name', 'like', "%{$search}%")
-            ->orWhere('contact_no', 'like', "%{$search}%")
-            ->orWhere('email', 'like', "%{$search}%")
-            ->orWhereHas('creditReports', function ($q2) use ($search) {
-                $q2->where('pan', 'like', "%{$search}%");
-            });
+              ->orWhere('contact_no', 'like', "%{$search}%")
+              ->orWhere('email', 'like', "%{$search}%")
+              ->orWhereHas('creditReports', function ($q2) use ($search) {
+                  $q2->where('pan', 'like', "%{$search}%");
+              });
         });
     }
 
@@ -917,255 +907,526 @@ if (!$filename) {
             ) <= ?
         ", [request('active_to') . ' 23:59:59']);
     }
+
     /*
     |--------------------------------------------------------------------------
     | Final Data
     |--------------------------------------------------------------------------
     */
 
-        // $users = $query
-            //     ->latest('loan_signin_id')
-            //     ->paginate(10)
-            //     ->appends(request()->query());
+    $query->selectRaw("
+        loansignins.*,
+        GREATEST(
+            COALESCE(loansignins.updated_at, '1970-01-01'),
+            COALESCE(
+                (SELECT MAX(updated_at) FROM basic_infos WHERE basic_infos.user_id = loansignins.loan_signin_id),
+                '1970-01-01'
+            ),
+            COALESCE(
+                (SELECT MAX(updated_at) FROM credit_reports WHERE credit_reports.user_id = loansignins.loan_signin_id),
+                '1970-01-01'
+            ),
+            COALESCE(
+                (SELECT MAX(created_at) FROM bank_clicks WHERE bank_clicks.loan_signin_id = loansignins.loan_signin_id),
+                '1970-01-01'
+            ),
+            COALESCE(
+                (SELECT MAX(updated_at) FROM menu_clicks WHERE menu_clicks.user_id = loansignins.loan_signin_id),
+                '1970-01-01'
+            )
+        ) as last_activity_at
+    ");
+
+    $users = $query
+        ->orderByDesc('last_activity_at')
+        ->paginate(10)
+        ->appends(request()->query());
+
+    $reports = $users->map(function ($user) {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Menu Data
+        |--------------------------------------------------------------------------
+        */
+
+        $menuData = $user->menuClicks->whereNotNull('item');
+
+        $menusBrowsed = $menuData->pluck('item')->unique()->implode(', ');
+
+        $menuClicks = $menuData->sum('click_count');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Basic Info
+        |--------------------------------------------------------------------------
+        */
+
+        $basicInfo = $user->basicInfos->first();
+
+        $basicInfoStatus = $basicInfo ? 'Yes' : 'No';
+
+        /*
+        |--------------------------------------------------------------------------
+        | Bank Clicks
+        |--------------------------------------------------------------------------
+        */
+
+        $bankGrouped = $user->bankClicks->groupBy('bank_name');
+
+        $banksClicked = [];
+
+        foreach ($bankGrouped as $bankName => $clicks) {
+            $count = $clicks->count();
+            $banksClicked[] = $bankName . '-' . $count . ' clicks';
+        }
+
+        $banksClicked = implode(', ', $banksClicked);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Credit Report
+        |--------------------------------------------------------------------------
+        */
+
+        $creditReport = \App\Models\CreditReport::where('user_id', $user->loan_signin_id)
+            ->orderByDesc('updated_at')
+            ->first();
+
+        $creditScore = $creditReport->credit_score ?? null;
+
+        /*
+        |--------------------------------------------------------------------------
+        | Credit Card Lead
+        |--------------------------------------------------------------------------
+        */
+
+        $creditCardLead = \App\Models\CreditCardLead::where('mobile', $user->contact_no)
+            ->orderByDesc('created_at')
+            ->first();
+
+        $creditCardLeadStatus = $creditCardLead ? 'Yes' : 'No';
+
+        /*
+        |--------------------------------------------------------------------------
+        | Common Fields — merged from Basic Info / Credit Report / Credit Card Lead
+        |--------------------------------------------------------------------------
+        */
+
+        $profession = $basicInfo->dynamic_fields['profession_type'] ?? $creditCardLead->profession_type ?? null;
+
+        $loanAmount = $creditReport->loan_amount ?? null;
+
+        $income = $creditReport->income ?? $creditCardLead->annual_income ?? null;
+
+        $pan = $creditReport->pan ?? $creditCardLead->pan ?? null;
+
+        /*
+        |--------------------------------------------------------------------------
+        | Entry Source Tracking
+        |--------------------------------------------------------------------------
+        */
+
+        $sources = [];
+
+        if ($basicInfo) {
+            $sources[] = 'Loan Form';
+        }
+
+        if ($creditReport) {
+            $sources[] = 'Credit Score / Loan Eligibility';
+        }
+
+        if ($creditCardLead) {
+            $sources[] = 'Credit Card Page';
+        }
+
+        if ($user->bankClicks->count() > 0) {
+            $sources[] = 'Bank Click';
+        }
+
+        if (empty($sources)) {
+            $sources[] = 'Direct Registration (Popup)';
+        }
+
+        $entrySource = implode(', ', $sources);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Journey Percentage
+        |--------------------------------------------------------------------------
+        */
+
+        $journey = 20; // Registered
+
+        if ($user->basicInfos->count() > 0) {
+            $journey += 20;
+        }
+
+        if ($user->creditReports->count() > 0) {
+            $journey += 20;
+        }
+
+        if ($user->bankClicks->count() > 0) {
+            $journey += 20;
+        }
+
+        if ($creditCardLead) {
+            $journey = max($journey, 80);
+        }
+
+        $journey = min($journey, 100);
+
+        return (object)[
+            'user_id' => $user->loan_signin_id,
+            'otp_verified' => (bool) $user->otp_verified,
+            'name' => $user->customer_name,
+            'phone' => $user->contact_no,
+            'email' => $user->email,
+            'registered' => optional($user->created_at)->format('Y-m-d'),
+            'last_activity_at' => $user->last_activity_at ? Carbon::parse($user->last_activity_at)->format('d M Y, h:i A') : null,
+            'pincode' => $user->pincode,
+            'menus_browsed' => $menusBrowsed,
+            'menu_clicks' => $menuClicks,
+            'basic_info' => $basicInfoStatus,
+            'credit_card_lead' => $creditCardLeadStatus,
+            'entry_source' => $entrySource,
+            'profession' => $profession,
+            'loan_amount' => $loanAmount,
+            'income' => $income,
+            'banks_clicked' => $banksClicked,
+            'credit_score' => $creditScore,
+            'pan' => $pan,
+            'journey_percentage' => $journey,
+        ];
+    });
+
+    return view('admin.reports.user_journey_report', compact('reports', 'users'));
+}
+//     public function userJourneyReport()
+//     {
+//           $query = Loansignin::with([
+//         'menuClicks',
+//         'basicInfos',
+//         'bankClicks',
+//         'creditReports',
+//     ]);
+
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Date Filter
+//     |--------------------------------------------------------------------------
+//     */
+
+//     if (request()->filled('from_date')) {
+
+//         $query->whereDate(
+//             'created_at',
+//             '>=',
+//             request('from_date')
+//         );
+//     }
+
+//     if (request()->filled('to_date')) {
+
+//         $query->whereDate(
+//             'created_at',
+//             '<=',
+//             request('to_date')
+//         );
+//     }
+//     if (request()->filled('search')) {
+//         $search = request('search');
+//         $query->where(function ($q) use ($search) {
+//             $q->where('customer_name', 'like', "%{$search}%")
+//             ->orWhere('contact_no', 'like', "%{$search}%")
+//             ->orWhere('email', 'like', "%{$search}%")
+//             ->orWhereHas('creditReports', function ($q2) use ($search) {
+//                 $q2->where('pan', 'like', "%{$search}%");
+//             });
+//         });
+//     }
+
+//     if (request()->filled('active_from')) {
+//         $query->whereRaw("
+//             GREATEST(
+//                 COALESCE(loansignins.updated_at, '1970-01-01'),
+//                 COALESCE((SELECT MAX(updated_at) FROM basic_infos WHERE basic_infos.user_id = loansignins.loan_signin_id), '1970-01-01'),
+//                 COALESCE((SELECT MAX(updated_at) FROM credit_reports WHERE credit_reports.user_id = loansignins.loan_signin_id), '1970-01-01'),
+//                 COALESCE((SELECT MAX(created_at) FROM bank_clicks WHERE bank_clicks.loan_signin_id = loansignins.loan_signin_id), '1970-01-01'),
+//                 COALESCE((SELECT MAX(updated_at) FROM menu_clicks WHERE menu_clicks.user_id = loansignins.loan_signin_id), '1970-01-01')
+//             ) >= ?
+//         ", [request('active_from')]);
+//     }
+
+//     if (request()->filled('active_to')) {
+//         $query->whereRaw("
+//             GREATEST(
+//                 COALESCE(loansignins.updated_at, '1970-01-01'),
+//                 COALESCE((SELECT MAX(updated_at) FROM basic_infos WHERE basic_infos.user_id = loansignins.loan_signin_id), '1970-01-01'),
+//                 COALESCE((SELECT MAX(updated_at) FROM credit_reports WHERE credit_reports.user_id = loansignins.loan_signin_id), '1970-01-01'),
+//                 COALESCE((SELECT MAX(created_at) FROM bank_clicks WHERE bank_clicks.loan_signin_id = loansignins.loan_signin_id), '1970-01-01'),
+//                 COALESCE((SELECT MAX(updated_at) FROM menu_clicks WHERE menu_clicks.user_id = loansignins.loan_signin_id), '1970-01-01')
+//             ) <= ?
+//         ", [request('active_to') . ' 23:59:59']);
+//     }
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Final Data
+//     |--------------------------------------------------------------------------
+//     */
+
+//         // $users = $query
+//             //     ->latest('loan_signin_id')
+//             //     ->paginate(10)
+//             //     ->appends(request()->query());
     
-   $query->selectRaw("
-    loansignins.*,
+//    $query->selectRaw("
+//     loansignins.*,
 
-    GREATEST(
+//     GREATEST(
 
-        COALESCE(loansignins.updated_at, '1970-01-01'),
+//         COALESCE(loansignins.updated_at, '1970-01-01'),
 
-        COALESCE(
-            (SELECT MAX(updated_at)
-             FROM basic_infos
-             WHERE basic_infos.user_id = loansignins.loan_signin_id),
-            '1970-01-01'
-        ),
+//         COALESCE(
+//             (SELECT MAX(updated_at)
+//              FROM basic_infos
+//              WHERE basic_infos.user_id = loansignins.loan_signin_id),
+//             '1970-01-01'
+//         ),
 
-        COALESCE(
-            (SELECT MAX(updated_at)
-             FROM credit_reports
-             WHERE credit_reports.user_id = loansignins.loan_signin_id),
-            '1970-01-01'
-        ),
+//         COALESCE(
+//             (SELECT MAX(updated_at)
+//              FROM credit_reports
+//              WHERE credit_reports.user_id = loansignins.loan_signin_id),
+//             '1970-01-01'
+//         ),
         
 
-        COALESCE(
-            (SELECT MAX(created_at)
-             FROM bank_clicks
-             WHERE bank_clicks.loan_signin_id = loansignins.loan_signin_id),
-            '1970-01-01'
-        ),
+//         COALESCE(
+//             (SELECT MAX(created_at)
+//              FROM bank_clicks
+//              WHERE bank_clicks.loan_signin_id = loansignins.loan_signin_id),
+//             '1970-01-01'
+//         ),
 
-        COALESCE(
-            (SELECT MAX(updated_at)
-             FROM menu_clicks
-             WHERE menu_clicks.user_id = loansignins.loan_signin_id),
-            '1970-01-01'
-        )
+//         COALESCE(
+//             (SELECT MAX(updated_at)
+//              FROM menu_clicks
+//              WHERE menu_clicks.user_id = loansignins.loan_signin_id),
+//             '1970-01-01'
+//         )
 
-    ) as last_activity_at
-");
+//     ) as last_activity_at
+// ");
 
-$users = $query
-    ->orderByDesc('last_activity_at')
-    ->paginate(10)
-    ->appends(request()->query());
+// $users = $query
+//     ->orderByDesc('last_activity_at')
+//     ->paginate(10)
+//     ->appends(request()->query());
     
-        $reports = $users->map(function ($user) {
+//         $reports = $users->map(function ($user) {
     
            
-            /*
-            |--------------------------------------------------------------------------
-            | Menu Data
-            |--------------------------------------------------------------------------
-            */
+//             /*
+//             |--------------------------------------------------------------------------
+//             | Menu Data
+//             |--------------------------------------------------------------------------
+//             */
             
-            $menuData = $user->menuClicks
-                ->whereNotNull('item');
+//             $menuData = $user->menuClicks
+//                 ->whereNotNull('item');
             
-            $menusBrowsed = $menuData
-                ->pluck('item')
-                ->unique()
-                ->implode(', ');
+//             $menusBrowsed = $menuData
+//                 ->pluck('item')
+//                 ->unique()
+//                 ->implode(', ');
             
-            $menuClicks = $menuData
-                ->sum('click_count');
+//             $menuClicks = $menuData
+//                 ->sum('click_count');
     
-            /*
-            |--------------------------------------------------------------------------
-            | Basic Info
-            |--------------------------------------------------------------------------
-            */
+//             /*
+//             |--------------------------------------------------------------------------
+//             | Basic Info
+//             |--------------------------------------------------------------------------
+//             */
     
-            $basicInfo = $user->basicInfos->first();
+//             $basicInfo = $user->basicInfos->first();
     
-            $basicInfoStatus = $basicInfo ? 'Yes' : 'No';
+//             $basicInfoStatus = $basicInfo ? 'Yes' : 'No';
     
-            $profession = null;
+//             $profession = null;
     
-            if ($basicInfo && isset($basicInfo->dynamic_fields['profession_type'])) {
-                $profession = $basicInfo->dynamic_fields['profession_type'];
-            }
+//             if ($basicInfo && isset($basicInfo->dynamic_fields['profession_type'])) {
+//                 $profession = $basicInfo->dynamic_fields['profession_type'];
+//             }
     
-            /*
-            |--------------------------------------------------------------------------
-            | Bank Clicks
-            |--------------------------------------------------------------------------
-            */
+//             /*
+//             |--------------------------------------------------------------------------
+//             | Bank Clicks
+//             |--------------------------------------------------------------------------
+//             */
     
-            $bankGrouped = $user->bankClicks
-                ->groupBy('bank_name');
+//             $bankGrouped = $user->bankClicks
+//                 ->groupBy('bank_name');
     
-            $banksClicked = [];
+//             $banksClicked = [];
     
-            foreach ($bankGrouped as $bankName => $clicks) {
+//             foreach ($bankGrouped as $bankName => $clicks) {
     
-                $count = $clicks->count();
+//                 $count = $clicks->count();
     
-                $banksClicked[] = $bankName . '-' . $count . ' clicks';
-            }
+//                 $banksClicked[] = $bankName . '-' . $count . ' clicks';
+//             }
     
-            $banksClicked = implode(', ', $banksClicked);
+//             $banksClicked = implode(', ', $banksClicked);
     
-            /*
-            |--------------------------------------------------------------------------
-            | Credit Report
-            |--------------------------------------------------------------------------
-            */
+//             /*
+//             |--------------------------------------------------------------------------
+//             | Credit Report
+//             |--------------------------------------------------------------------------
+//             */
     
-            $creditReport = \App\Models\CreditReport::where(
-                                'user_id',
-                                $user->loan_signin_id
-                            )
+//             $creditReport = \App\Models\CreditReport::where(
+//                                 'user_id',
+//                                 $user->loan_signin_id
+//                             )
                             
-                            ->orderByDesc('updated_at')
-                            ->first();
+//                             ->orderByDesc('updated_at')
+//                             ->first();
     
-            $creditScore = $creditReport->credit_score ?? null;
+//             $creditScore = $creditReport->credit_score ?? null;
             
-            $loanAmount = $creditReport->loan_amount ?? null;
+//             $loanAmount = $creditReport->loan_amount ?? null;
             
-            $income = $creditReport->income ?? null;
+//             $income = $creditReport->income ?? null;
 
-             /*
-            |--------------------------------------------------------------------------
-            | Credit Card Lead
-            |--------------------------------------------------------------------------
-            */
+//              /*
+//             |--------------------------------------------------------------------------
+//             | Credit Card Lead
+//             |--------------------------------------------------------------------------
+//             */
 
-            $creditCardLead = \App\Models\CreditCardLead::where(
-                        'mobile',
-                        $user->contact_no
-                    )
-                    ->orderByDesc('created_at')
-                    ->first();
+//             $creditCardLead = \App\Models\CreditCardLead::where(
+//                         'mobile',
+//                         $user->contact_no
+//                     )
+//                     ->orderByDesc('created_at')
+//                     ->first();
 
-            $creditCardLeadStatus = $creditCardLead ? 'Yes' : 'No';
+//             $creditCardLeadStatus = $creditCardLead ? 'Yes' : 'No';
 
-            // PAN (Credit Report first, then Credit Card)
-            $pan = $creditReport->pan ?? $creditCardLead->pan ?? null;
+//             // PAN (Credit Report first, then Credit Card)
+//             $pan = $creditReport->pan ?? $creditCardLead->pan ?? null;
 
-             /*
-|--------------------------------------------------------------------------
-| Entry Source Tracking
-|--------------------------------------------------------------------------
-*/
+//              /*
+// |--------------------------------------------------------------------------
+// | Entry Source Tracking
+// |--------------------------------------------------------------------------
+// */
 
-$sources = [];
+// $sources = [];
 
-if ($basicInfo) {
-    $sources[] = 'Loan Form';
-}
+// if ($basicInfo) {
+//     $sources[] = 'Loan Form';
+// }
 
-if ($creditReport) {
-    $sources[] = 'Credit Score / Loan Eligibility';
-}
+// if ($creditReport) {
+//     $sources[] = 'Credit Score / Loan Eligibility';
+// }
 
-if ($creditCardLead) {
-    $sources[] = 'Credit Card Page';
-}
+// if ($creditCardLead) {
+//     $sources[] = 'Credit Card Page';
+// }
 
-if ($user->bankClicks->count() > 0) {
-    $sources[] = 'Bank Click';
-}
+// if ($user->bankClicks->count() > 0) {
+//     $sources[] = 'Bank Click';
+// }
 
-// Agar koi bhi flow match nahi hua, matlab sirf popup se register hua
-if (empty($sources)) {
-    $sources[] = 'Direct Registration (Popup)';
-}
+// // Agar koi bhi flow match nahi hua, matlab sirf popup se register hua
+// if (empty($sources)) {
+//     $sources[] = 'Direct Registration (Popup)';
+// }
 
-$entrySource = implode(', ', $sources);
+// $entrySource = implode(', ', $sources);
     
-            /*
-            |--------------------------------------------------------------------------
-            | Journey Percentage
-            |--------------------------------------------------------------------------
-            */
+//             /*
+//             |--------------------------------------------------------------------------
+//             | Journey Percentage
+//             |--------------------------------------------------------------------------
+//             */
     
-           $journey = 20; // Registered
+//            $journey = 20; // Registered
 
-            if ($user->basicInfos->count() > 0) {
-                $journey += 20;
-            }
+//             if ($user->basicInfos->count() > 0) {
+//                 $journey += 40;
+//             }
             
-            if ($user->creditReports->count() > 0) {
-                $journey += 20;
-            }
+//             if ($user->creditReports->count() > 0) {
+//                 $journey += 20;
+//             }
             
-            if ($user->bankClicks->count() > 0) {
-                $journey += 20;
-            }
+//             if ($user->bankClicks->count() > 0) {
+//                 $journey += 20;
+//             }
+//             // Credit Card Lead present → ensure journey lands in 70-80% range
+//             if ($creditCardLead) {
+//             $journey = max($journey, 75); // floor set to 75%, jo already-higher scores ko override nahi karega
+//             }
+
+//             // Safety cap — kabhi 100% se upar na jaye
+//             $journey = min($journey, 100);
             
             
 
     
-            return (object)[
+//             return (object)[
     
-                'user_id' => $user->loan_signin_id,
+//                 'user_id' => $user->loan_signin_id,
 
-                'otp_verified'     => (bool) $user->otp_verified,
+//                 'otp_verified'     => (bool) $user->otp_verified,
     
-                'name' => $user->customer_name,
+//                 'name' => $user->customer_name,
     
-                'phone' => $user->contact_no,
+//                 'phone' => $user->contact_no,
     
-                'email' => $user->email,
+//                 'email' => $user->email,
     
-                'registered' => optional($user->created_at)->format('Y-m-d'),
+//                 'registered' => optional($user->created_at)->format('Y-m-d'),
 
-                'last_activity_at'   => $user->last_activity_at ? Carbon::parse($user->last_activity_at)->format('d M Y, h:i A') : null,
+//                 'last_activity_at'   => $user->last_activity_at ? Carbon::parse($user->last_activity_at)->format('d M Y, h:i A') : null,
     
-                'pincode' => $user->pincode,
+//                 'pincode' => $user->pincode,
     
-                'menus_browsed' => $menusBrowsed,
+//                 'menus_browsed' => $menusBrowsed,
     
-                'menu_clicks' => $menuClicks,
+//                 'menu_clicks' => $menuClicks,
     
-                'basic_info' => $basicInfoStatus,
+//                 'basic_info' => $basicInfoStatus,
 
-                'credit_card_lead' => $creditCardLeadStatus,
+//                 'credit_card_lead' => $creditCardLeadStatus,
 
-                'entry_source' => $entrySource,
+//                 'entry_source' => $entrySource,
     
-                'profession' => $profession,
+//                 'profession' => $profession,
     
-                'loan_amount' => $loanAmount,
+//                 'loan_amount' => $loanAmount,
                 
-                'income' => $income,
+//                 'income' => $income,
     
-                'banks_clicked' => $banksClicked,
+//                 'banks_clicked' => $banksClicked,
     
-                'credit_score' => $creditScore,
+//                 'credit_score' => $creditScore,
     
-                'pan' => $pan,
+//                 'pan' => $pan,
     
-                'journey_percentage' => $journey,
-            ];
-        });
+//                 'journey_percentage' => $journey,
+//             ];
+//         });
     
-        return view('admin.reports.user_journey_report',compact('reports', 'users'));
-    }
+//         return view('admin.reports.user_journey_report',compact('reports', 'users'));
+//     }
+
     public function userJourneyExport()
     {
         $filters = request()->only('from_date', 'to_date', 'search', 'active_from', 'active_to');

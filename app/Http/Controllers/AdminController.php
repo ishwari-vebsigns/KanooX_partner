@@ -16,6 +16,8 @@ use App\Models\Loan;
 use App\Models\MutualFund;
 use App\Models\ApplyNow;
 use App\Models\User;
+use App\Models\Bank;
+use App\Models\BasicInfo;
 use App\Models\CommissionMaster;
 use App\Models\Branch;
 use App\Models\WalletTransaction;
@@ -602,6 +604,37 @@ class AdminController extends Controller
 		$referal_tool = ReferalTools::with('refer_by')->orderBy('referal_tool_id', 'desc');
 		return DataTables::of($referal_tool)->make(true);
 	}
+	
+	public function getLoanStatusCounts(Request $request)
+	{
+		$period = $request->input('period', 'week');
+		$query = BasicInfo::query();
+
+		switch ($period) {
+    case 'today':
+        $query->whereDate('created_at', today());
+        break;
+    case 'week':
+        $query->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()]);
+        break;
+    case 'month':
+        $query->whereYear('created_at', now()->year)->whereMonth('created_at', now()->month);
+        break;
+    case 'custom':
+        if ($request->start && $request->end) {
+            $query->whereBetween('created_at', [$request->start . ' 00:00:00', $request->end . ' 23:59:59']);
+        }
+        break;
+}
+		return response()->json([
+			'pending' => (clone $query)->where('status', 'pending')->count(),
+			'under_review' => (clone $query)->where('status', 'under_review')->count(),
+			'completed' => (clone $query)->where('status', 'completed')->count(),
+		]);
+	}
+
+	
+	
 	public function getDashboard(Request $request)
 	{
 		// Loansignin
@@ -853,8 +886,54 @@ class AdminController extends Controller
 			$credit_card_leads_count = DB::table('credit_card_leads')->count();
 			$contact_us_count = DB::table('contacts')->count();
 			$credit_reports_count = DB::table('credit_reports')->count();
+			$total_leads = $loan_leads_count + $credit_card_leads_count + $contact_us_count + $credit_reports_count;
+			$lead_categories = collect([
+			['label' => 'Loan Leads', 'count' => $loan_leads_count, 'color' => '#9D3895'],
+				['label' => 'Credit Card Leads', 'count' => $credit_card_leads_count, 'color' => '#f3d9f0'],
+				// ['label' => 'Contact Us', 'count' => $contact_us_count, 'color' => '#16b364'],
+				['label' => 'Credit Reports', 'count' => $credit_reports_count, 'color' => '#392367'],
+			])->map(function ($category) use ($total_leads) {
+				$category['percent'] = $total_leads > 0
+					? round(($category['count'] / $total_leads) * 100, 1)
+					: 0;
+				return $category;
+			})->values()->all();	
+			// ↓↓↓ YAHAN NAYA CODE ADD KARNA HAI ↓↓↓
+			$loan_status_counts = [
+				'pending' => DB::table('basic_infos')->where('status', 'pending')->count(),
+				'under_review' => DB::table('basic_infos')->where('status', 'under_review')->count(),
+				'completed' => DB::table('basic_infos')->where('status', 'completed')->count(),
+			];
+			// ↑↑↑ YAHAN TAK ↑↑↑
+			$total_loan_leads = DB::table('basic_infos')->count();
+			$conversion_rate = $total_loan_leads > 0 ? round(($loan_disbursed_count / $total_loan_leads) * 100) : 0;
+			// ↓↓↓ YAHAN NAYA CODE ADD KARNA HAI ↓↓↓
+			$total_banks = Bank::count();
+			$active_banks = Bank::where('is_active', 1)->count();
 
-			return view('admin.dashboard')->with('total_loan_approved_count', $total_loan_approved_count)->with('total_loan_nonapproved_count', $total_loan_nonapproved_count)->with('loan_registered_count', $loan_registered_count)->with('loan_disbursed_count', $loan_disbursed_count)->with('latestwalletcount', $latestwalletcount)->with('user', $user)->with('agentqr', $agentqr)->with('new_mrw1', $new_mrw1)->with('new_mrw', $new_mrw)->with('user_count', $user_count)->with('refer_earn_count', $refer_earn_count)->with('loan_approved_count', $loan_approved_count)->with('loan_nonapproved_count', $loan_nonapproved_count)->with('loan_leads_count', $loan_leads_count)->with('credit_card_leads_count', $credit_card_leads_count)->with('contact_us_count', $contact_us_count)->with('credit_reports_count', $credit_reports_count);
+			$total_services = Service::where('is_main_service', 1)->count();
+			$active_services = Service::where('is_main_service', 1)->where('status_id', 1)->count();
+			$inactive_services = $total_services - $active_services;
+
+			$total_sub_services = Service::where('is_main_service', 0)->count();
+			$active_sub_services = Service::where('is_main_service', 0)->where('status_id', 1)->count();
+			$inactive_sub_services = $total_sub_services - $active_sub_services;
+
+			$services_health = [
+				'banks' => [$active_banks, $total_banks - $active_banks],
+				'services' => [$active_services, $inactive_services],
+				'sub_services' => [$active_sub_services, $inactive_sub_services],
+			];
+			// ↑↑↑ YAHAN TAK ↑↑↑
+
+			$loan_status_counts_json = json_encode($loan_status_counts ?: ['pending' => 0, 'under_review' => 0, 'completed' => 0]);  
+			$services_health_json = json_encode($services_health ?: ['banks' => [0,0], 'services' => [0,0], 'sub_services' => [0,0]]);
+
+			return view('admin.dashboard')->with('total_loan_approved_count', $total_loan_approved_count)->with('total_loan_nonapproved_count', $total_loan_nonapproved_count)->with('loan_registered_count', $loan_registered_count)->with('loan_disbursed_count', $loan_disbursed_count)->with('latestwalletcount', $latestwalletcount)->with('user', $user)->with('agentqr', $agentqr)->with('new_mrw1', $new_mrw1)->with('new_mrw', $new_mrw)->with('user_count', $user_count)->with('refer_earn_count', $refer_earn_count)->with('loan_approved_count', $loan_approved_count)->with('loan_nonapproved_count', $loan_nonapproved_count)->with('loan_leads_count', $loan_leads_count)->with('credit_card_leads_count', $credit_card_leads_count)->with('contact_us_count', $contact_us_count)->with('credit_reports_count', $credit_reports_count)->with('lead_categories', $lead_categories)->with('loan_status_counts', $loan_status_counts)->with('total_banks', $total_banks)->with('active_banks', $active_banks)->with('total_services', $total_services)->with('active_services', $active_services)->with('inactive_services', $inactive_services)->with('total_sub_services', $total_sub_services)->with('active_sub_services', $active_sub_services)->with('inactive_sub_services', $inactive_sub_services)->with('services_health', $services_health)->with('loan_status_counts_json', $loan_status_counts_json)->with('services_health_json', $services_health_json)->with('total_loan_leads', $total_loan_leads)->with('conversion_rate', $conversion_rate);
+
+			// return view('admin.dashboard')->with('total_loan_approved_count', $total_loan_approved_count)->with('total_loan_nonapproved_count', $total_loan_nonapproved_count)->with('loan_registered_count', $loan_registered_count)->with('loan_disbursed_count', $loan_disbursed_count)->with('latestwalletcount', $latestwalletcount)->with('user', $user)->with('agentqr', $agentqr)->with('new_mrw1', $new_mrw1)->with('new_mrw', $new_mrw)->with('user_count', $user_count)->with('refer_earn_count', $refer_earn_count)->with('loan_approved_count', $loan_approved_count)->with('loan_nonapproved_count', $loan_nonapproved_count)->with('loan_leads_count', $loan_leads_count)->with('credit_card_leads_count', $credit_card_leads_count)->with('contact_us_count', $contact_us_count)->with('credit_reports_count', $credit_reports_count)->with('lead_categories', $lead_categories)->with('loan_status_counts', $loan_status_counts);
+
+			// return view('admin.dashboard')->with('total_loan_approved_count', $total_loan_approved_count)->with('total_loan_nonapproved_count', $total_loan_nonapproved_count)->with('loan_registered_count', $loan_registered_count)->with('loan_disbursed_count', $loan_disbursed_count)->with('latestwalletcount', $latestwalletcount)->with('user', $user)->with('agentqr', $agentqr)->with('new_mrw1', $new_mrw1)->with('new_mrw', $new_mrw)->with('user_count', $user_count)->with('refer_earn_count', $refer_earn_count)->with('loan_approved_count', $loan_approved_count)->with('loan_nonapproved_count', $loan_nonapproved_count)->with('loan_leads_count', $loan_leads_count)->with('credit_card_leads_count', $credit_card_leads_count)->with('contact_us_count', $contact_us_count)->with('credit_reports_count', $credit_reports_count)->with('lead_categories', $lead_categories);
 			//return view('admin.dashboard')->with('total_loan_approved_count', $total_loan_approved_count)->with('total_loan_nonapproved_count', $total_loan_nonapproved_count)->with('loan_registered_count', $loan_registered_count)->with('loan_disbursed_count', $loan_disbursed_count)->with('latestwalletcount', $latestwalletcount)->with('user', $user)->with('agentqr', $agentqr)->with('new_mrw1', $new_mrw1)->with('new_mrw', $new_mrw)->with('user_count', $user_count)->with('refer_earn_count', $refer_earn_count)->with('loan_approved_count', $loan_approved_count)->with('loan_nonapproved_count', $loan_nonapproved_count);
 			// return view('admin.dashboard')->with('user',$user)->with('amount_loan_approved_percentage',$amount_loan_approved_percentage)->with('amount_loan_rejected_percentage',$amount_loan_rejected_percentage)->with('user_count',$user_count)->with('lead_count',$lead_count)->with('refer_earn_count',$refer_earn_count)->with('loan_applied_for',$loan_applied_for)->with('total_loan_applied_for',$total_loan_applied_for)->with('loan_approved',$loan_approved)->with('loan_rejected',$loan_rejected)->with('loan_approved_percentage',$loan_approved_percentage)->with('loan_rejected_percentage',$loan_rejected_percentage)->with('loan_applied_for_count',$loan_applied_for_count)->with('total_loan_applied_for_count',$total_loan_applied_for_count)->with('loan_approved_count',$loan_approved_count)->with('loan_rejected_count',$loan_rejected_count);
 		}

@@ -3,6 +3,15 @@
 /public/storage
 /storage/*.key
 /vendor
+
+# Laravel generated files
+/storage/framework/views/
+/storage/framework/cache/
+/storage/framework/sessions/
+/storage/logs/
+
+# Downloaded / generated web assets
+/public/web-assets/
 .env
 .env.backup
 .phpunit.result.cache
