@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\LoanLeadController;
 
 /*
 |--------------------------------------------------------------------------
@@ -17,3 +18,7 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
+
+Route::post('/loan-lead', [LoanLeadController::class, 'store']);
+// Testing ke liye simple:
+Route::post('/insurance-lead', [App\Http\Controllers\Api\InsuranceLeadApiController::class, 'store']);

@@ -60,6 +60,7 @@ Route::get('credit', function () {
 Route::get('step-up', function () {
     return view('step-up');
 });
+
 Route::get('fetch-qr/{agent_code}', 'AdminController@getagentqr');
 Route::get('download-page', 'AdminController@downloadagentqr');
 Route::get('/','PublicController@getHomePage');
@@ -234,12 +235,12 @@ Route::group(['prefix' => 'admin',  'middleware' => 'auth'], function(){
 
 			});
 	//MIS
-			Route::get('mis', ['middleware' =>'auth', 'uses' =>'MisController@getAllMis']);
-			Route::get('mis/allData', ['middleware' =>'auth', 'uses' =>'MisController@getAllMisData']);
-			Route::get('mis/add', ['middleware' =>'auth', 'uses' =>'MisController@getAddMis']);
-			Route::post('mis/addMis', ['middleware' =>'auth', 'uses' =>'MisController@postAddMis']);
-			Route::get('mis/{id}', ['middleware' =>'auth', 'uses' =>'MisController@getEditMis']);
-			Route::post('mis/{id}', ['middleware' =>'auth', 'uses' =>'MisController@postEditMis']);
+			// Route::get('mis', ['middleware' =>'auth', 'uses' =>'MisController@getAllMis']);
+			// Route::get('mis/allData', ['middleware' =>'auth', 'uses' =>'MisController@getAllMisData']);
+			// Route::get('mis/add', ['middleware' =>'auth', 'uses' =>'MisController@getAddMis']);
+			// Route::post('mis/addMis', ['middleware' =>'auth', 'uses' =>'MisController@postAddMis']);
+			// Route::get('mis/{id}', ['middleware' =>'auth', 'uses' =>'MisController@getEditMis']);
+			// Route::post('mis/{id}', ['middleware' =>'auth', 'uses' =>'MisController@postEditMis']);
 
 
 	Route::get('approve/wallet/{id}', ['middleware' =>'auth', 'uses' =>'AdminController@getApproveWallet']);
@@ -525,6 +526,10 @@ Route::get('logout',['middleware' => 'auth', 'uses' =>'PublicController@getLogou
 Route::get('/admin/user-contacts', [App\Http\Controllers\UserContactController::class, 'index'])->name('admin.user.contacts');
 Route::get('/admin/user-contacts/export',[App\Http\Controllers\UserContactController::class, 'export'])->name('user.contacts.export');
 
+//insurance-leads
+Route::get('/admin/insurance-lead', [App\Http\Controllers\InsuranceLeadController::class, 'index'])->name('admin.insurance.leads');
+// Route::get('/admin/insurance-leads/export', [App\Http\Controllers\InsuranceLeadController::class, 'export'])->name('insurance.leads.export');
+// Route::post('/admin/insurance-leads/{id}/status', [App\Http\Controllers\InsuranceLeadController::class, 'updateStatus'])->name('insurance.leads.updateStatus');
 
 //menu clicks count report
 Route::get('/admin/menu-clicks', [App\Http\Controllers\MenuClickReportController::class, 'index'])->name('admin.menu.clicks');

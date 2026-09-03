@@ -325,6 +325,11 @@
                                     <a href="{{ $base_url }}/admin/user-contacts"><span class="nav-text">Contact Us</span></a>
                                 </li>
                             @endif
+                             @if($my_permissions->contains('CONTACT_US_VIEW'))
+                                <li class="{{ request()->is('admin/insurance-lead') ? 'active' : '' }}">
+                                    <a href="{{ $base_url }}/admin/insurance-lead"><span class="nav-text">Insurance Lead</span></a>
+                                </li>
+                            @endif
                         </ul>
                     </li>
                 @endif
